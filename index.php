@@ -30,7 +30,20 @@ date_default_timezone_set('UTC'); #date_default_timezone_set('Asia/Kolkata');
  */
 define('NEXO_ENVIRONMENT', 'development'); // 'development' or 'production'
 define('NEXO_LOG_ERRORS', true); // Enable error logging
-define('NEXO_LOG_FILE', MAIN . MAIN_DIRECTORY . '/' . APP_DIRECTORY . '/logs/nexo_errors.log');
+
+/*
+ * Create logs directory if it doesn't exist
+ */
+if (NEXO_LOG_ERRORS && !is_dir(MAIN . MAIN_DIRECTORY . '/' . APP_DIRECTORY . '/logs')) {
+    mkdir(MAIN . MAIN_DIRECTORY . '/' . APP_DIRECTORY . '/logs', 0777, true);
+}
+
+/*
+ * Set log file path if error logging is enabled
+ */
+if (NEXO_LOG_ERRORS) {
+    define('NEXO_LOG_FILE', MAIN . MAIN_DIRECTORY . '/' . APP_DIRECTORY . '/logs/nexo_errors.log');
+}
 
 /*
  *

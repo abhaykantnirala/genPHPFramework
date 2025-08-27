@@ -1,0 +1,7 @@
+[2025-08-27 11:40:27] ControllerNotFoundException: Controller file not found: 'webapps/apps/modules/website/controllers/website.php' in /var/www/abhaykantlocal.netcoresmartech.com/public_html/genPHPFramework/webapps/base/bind/nexo.php:105
+Context: {"controller_path":"webapps\/apps\/modules\/website\/controllers\/website.php","type":"controller_not_found"}
+Trace:
+#0 /var/www/abhaykantlocal.netcoresmartech.com/public_html/genPHPFramework/webapps/base/bind/nexo.php(85): Nexo->run()
+#1 /var/www/abhaykantlocal.netcoresmartech.com/public_html/genPHPFramework/webapps/base/bind/nexo.php(712): Nexo->__construct()
+#2 /var/www/abhaykantlocal.netcoresmartech.com/public_html/genPHPFramework/index.php(57): require_once('/var/www/abhayk...')
+#3 {main}
