@@ -158,7 +158,7 @@ apps/configs/config.php                      # Application config
 **Nexo Framework**:
 ```php
 // Ultra-lightweight bootstrap (38 lines)
-require_once(SYSTEMPATH . 'bind/genie.php');
+require_once(SYSTEMPATH . 'bind/nexo.php');
 new Nexo; // Direct instantiation
 ```
 - **~10 core files** loaded initially
@@ -369,7 +369,7 @@ route::group(['middleware' => ['auth', 'admin']], function () {
 
 ## 🏆 **OVERALL ASSESSMENT**
 
-### **GENIE FRAMEWORK RATING: 8.5/10**
+### **NEXO FRAMEWORK RATING: 8.5/10**
 
 ### **Strengths** ✅:
 1. **🥇 Performance Leader** - Fastest bootstrap among major frameworks

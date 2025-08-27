@@ -41,7 +41,7 @@
 
 ---
 
-## 💡 **THE GENIE SOLUTION**
+## 💡 **THE NEXO SOLUTION**
 
 ### **Revolutionary Multi-Project Architecture**
 
