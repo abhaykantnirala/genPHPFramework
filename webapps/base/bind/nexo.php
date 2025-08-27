@@ -11,7 +11,7 @@
  * @version   1.0.0
  */
 
-@session_start();
+// 🔒 Secure session initialization handled in index.php
 
 $GLOBALS['current_directory'] = false;
 $GLOBALS['route_info'] = array();
@@ -61,6 +61,8 @@ require_once(SYSTEMPATH . 'bind/gconfig-constants.php');
 
 require_once(SYSTEMPATH . 'bind/nexo-exceptions.php');
 
+require_once(SYSTEMPATH . 'bind/nexo-security.php');
+
 class Nexo {
 
     private $obj;
@@ -75,11 +77,32 @@ class Nexo {
     public $current_directory = "";
     private $middleware;
     private $stime;
+    
+    // Performance optimization properties
+    private static $routeCache = [];
+    private static $classMethodCache = [];
+    private static $reflectionCache = [];
+    private $performanceMetrics = [];
+    private $cacheEnabled = true;
+    
+    // New innovative features
+    private static $dependencyContainer = [];
+    private static $eventListeners = [];
+    private $middlewareStack = [];
+    private $requestPipeline = [];
+    private static $autoDiscoveredRoutes = null;
 
     function __construct() {
+        // Initialize performance tracking
+        $this->stime = microtime(true);
+        $this->performanceMetrics['start_time'] = $this->stime;
+        
         #get uri object
         $this->obj = array();
         $this->params = array();
+        
+        // Enable caching based on environment
+        $this->cacheEnabled = !defined('NEXO_ENVIRONMENT') || NEXO_ENVIRONMENT !== 'development';
         
         try {
             $this->run();
@@ -88,9 +111,24 @@ class Nexo {
         } catch (Exception $e) {
             $this->handleGenericException($e);
         }
+        
+        // Log performance metrics in development
+        $this->logPerformanceMetrics();
     }
 
-    public function run() {
+    /**
+     * Main execution method for the Nexo Framework
+     * Handles the complete request lifecycle from routing to response
+     * 
+     * @throws ControllerNotFoundException If controller file not found
+     * @throws RouteNotFoundException If no matching route found
+     * @throws MiddlewareNotFoundException If middleware file not found
+     * @return void
+     */
+    public function run(): void {
+        // Fire framework initialization event
+        self::fire('nexo.framework.init', $this);
+        
         $this->routingInfo = isset($GLOBALS['routingInfo']) ? $GLOBALS['routingInfo'] : array();
         $this->controller = isset($GLOBALS['controller']) ? $GLOBALS['controller'] : '';
         $this->method = isset($this->routingInfo['method']) ? $this->routingInfo['method'] : '';
@@ -144,6 +182,13 @@ class Nexo {
             $this->_include_middlewares_files($this->middleware, $middleware_path);
         }
 
+        // Fire before controller execution event
+        self::fire('nexo.controller.before', [
+            'controller' => $this->controller,
+            'method' => $this->method,
+            'params' => $this->params
+        ]);
+
         #now go ahead to call controller and its function and put parameters if available
         #initialize controller object
         $clsName = explode("/", str_replace(".php", "", $this->controller));
@@ -170,13 +215,42 @@ class Nexo {
                     }
                 }
             }
+            
+            // Fire before method execution event
+            self::fire('nexo.method.before', [
+                'class' => $className,
+                'method' => $method_name,
+                'params' => $fun_params
+            ]);
+            
             call_user_func_array(array($clsObj, $method_name), $fun_params);
         } else {
+            // Fire before method execution event
+            self::fire('nexo.method.before', [
+                'class' => $className,
+                'method' => $method_name,
+                'params' => []
+            ]);
+            
             call_user_func_array(array($clsObj, $method_name), array());
         }
+        
+        // Fire after controller execution event
+        self::fire('nexo.controller.after', [
+            'controller' => $this->controller,
+            'method' => $method_name,
+            'class' => $className
+        ]);
     }
 
-    private function _directory_list($dir_path) {
+    /**
+     * Get list of PHP files from a directory
+     * 
+     * @param string $dir_path Directory path to scan
+     * @throws DirectoryNotFoundException If directory doesn't exist
+     * @return array List of PHP file paths
+     */
+    private function _directory_list(string $dir_path): array {
         $file_list = array();
         $route_directory = $dir_path;
         if (!is_dir($route_directory)) {
@@ -308,16 +382,48 @@ class Nexo {
         }
     }
 
+    /**
+     * Reset and sanitize optional parameters with security validation
+     * 
+     * @param array $params Raw parameters from routing
+     * @return array Sanitized and validated parameters
+     */
     private function _reset_optional_params($params) {
         $rtnParams = array();
         foreach ($params as $key => $row) {
+            // Sanitize parameter key
             $key = str_replace("?", "", $key);
-            $rtnParams[$key] = urldecode($row);
+            $key = NexoSecurity::sanitize($key, 'string');
+            
+            // Validate and sanitize parameter value
+            $decodedValue = urldecode($row);
+            list($sanitizedValue, $isValid, $errors) = NexoSecurity::validateInput($decodedValue, [
+                'type' => 'string',
+                'length' => ['max' => 1000], // Prevent extremely long inputs
+            ]);
+            
+            if (!$isValid) {
+                // Log security violation but continue with sanitized value
+                foreach ($errors as $error) {
+                    NexoSecurity::logSecurityViolation(
+                        'PARAMETER_VALIDATION_FAILED',
+                        "Key: $key, Value: $decodedValue, Error: $error"
+                    );
+                }
+            }
+            
+            $rtnParams[$key] = $sanitizedValue;
         }
         return $rtnParams;
     }
 
-    private function array_walk($string) {
+    /**
+     * Convert string path to lowercase format
+     * 
+     * @param string $string Path string to convert
+     * @return string Converted lowercase path
+     */
+    private function array_walk(string $string): string {
         $string = explode("/", $string);
         array_walk($string, function (&$value) {
             $value = strtolower($value);
@@ -326,134 +432,245 @@ class Nexo {
         return $return;
     }
 
+    /**
+     * Get the best matching function for the current route
+     * 
+     * @return array|false Array with method name and parameters, or false if no match
+     */
     private function _get_filter_function_name() {
-        $clsName = explode("/", str_replace(".php", "", $this->controller));
-        $className = end($clsName);
-        $class_methods_name_list = get_class_methods($className);
+        $className = $this->_getControllerClassName();
+        $class_methods = get_class_methods($className);
 
-        if (!$class_methods_name_list) {
+        if (!$class_methods) {
             throw new ControllerMethodNotFoundException($this->controller, []);
         }
 
-        #now get matched methods in class from routing
-        $matched_methods = array();
-        foreach ($this->method as $mRow) {
-            if (is_array($class_methods_name_list))
-                foreach ($class_methods_name_list as $cRow) {
-                    if ($mRow === $cRow) {
-                        $matched_methods[] = $mRow;
-                    }
+        $matched_methods = $this->_getMatchedMethods($class_methods);
+        $this->method = $matched_methods;
+        
+        $params = $this->_normalizeParams();
+        $matched_params = [];
+        $matched_function_no_params = [];
+
+        // Match functions with their parameters
+        foreach ($matched_methods as $function_name) {
+            $paramList = $this->_get_function_parameters($className, $function_name);
+            
+            if (count($paramList)) {
+                if ($this->_isExactParameterMatch($params, $paramList)) {
+                    $matched_params[$function_name] = $paramList;
+                } elseif ($this->_isOptionalParameterMatch($params, $paramList)) {
+                    $matched_params[$function_name] = $paramList;
                 }
+            } else {
+                $matched_function_no_params[] = $function_name;
+            }
         }
 
-        $this->method = $matched_methods;
-        $params = array();
+        // Find the best match
+        return $this->_findBestMatch($matched_params, $matched_function_no_params, $params);
+    }
+    
+    /**
+     * Get the controller class name from the controller file path
+     * 
+     * @return string The controller class name
+     */
+    private function _getControllerClassName(): string {
+        $clsName = explode("/", str_replace(".php", "", $this->controller));
+        return end($clsName);
+    }
+    
+    /**
+     * Get methods that match the routing methods (with caching)
+     * 
+     * @param array $class_methods List of class methods
+     * @return array Matched methods
+     */
+    private function _getMatchedMethods(array $class_methods): array {
+        $cache_key = md5(serialize($this->method) . serialize($class_methods));
+        
+        if ($this->cacheEnabled && isset(self::$classMethodCache[$cache_key])) {
+            return self::$classMethodCache[$cache_key];
+        }
+        
+        $matched_methods = [];
+        foreach ($this->method as $route_method) {
+            if (in_array($route_method, $class_methods)) {
+                $matched_methods[] = $route_method;
+            }
+        }
+        
+        if ($this->cacheEnabled) {
+            self::$classMethodCache[$cache_key] = $matched_methods;
+        }
+        
+        return $matched_methods;
+    }
+    
+    /**
+     * Normalize parameters by removing optional indicators
+     * 
+     * @return array Normalized parameters
+     */
+    private function _normalizeParams(): array {
+        $params = [];
         foreach ($this->params as $key => $param) {
             if (!is_numeric($key)) {
                 $key = str_replace("?", "", $key);
                 $params[$key] = $param;
             }
         }
-
-        $matched_params = array();
-        $matched_function_no_params = array();
-        #now matched parameters of each function and reduece the function if that function has parameters
-
-        foreach ($this->method as $function_name) {
-            $paramList = $this->_get_function_parameters($className, $function_name);
-            #now match parameters if parameters exists
-            if (count($paramList)) {
-                if (count($params) === count($paramList)) {
-                    #now check each field if matched and
-                    $mtot = 0;
-                    foreach ($params as $r => $v) {
-                        foreach ($paramList as $s) {
-                            if ($r === $s) {
-                                $mtot++;
-                            }
-                        }
-                    }
-                    if ($mtot === count($params)) {
-                        $matched_params[$function_name] = $paramList;
-                    }
-                } else {
-                    #now filter the function name and its parameters if matched fully with optional parameters
-                    $total_params = count($params);
-                    $total_params_excluding_optional = 0;
-                    foreach ($paramList as $key => $row) {
-                        if (!is_numeric($key)) {
-                            $total_params_excluding_optional++;
-                        }
-                    }
-                    if ($total_params + $total_params_excluding_optional === count($paramList)) {
-                        $mtot = 0;
-                        foreach ($params as $r => $v) {
-                            foreach ($paramList as $key => $s) {
-                                if (is_numeric($key)) {
-                                    if ($r === $s) {
-                                        $mtot++;
-                                    }
-                                }
-                            }
-                        }
-                        if ($mtot === count($params)) {
-                            $matched_params[$function_name] = $paramList;
-                        }
-                    }
-                }
-            } else {
-                $matched_function_no_params[] = $function_name;
-            }
-        }
-        #now match for strict parameters otherwise fetch for optional parameters
-        $strict_match = false;
-        foreach ($matched_params as $key => $rows) {
-            $tot = 0;
-            foreach ($rows as $k => $v) {
-                if (is_numeric($k)) {
-                    $tot++;
-                }
-            }
-            if ($tot === count($params)) {
-                $strict_match = $key;
-                break;
-            }
-        }
-
-        if (!$strict_match) {
-            foreach ($matched_params as $key => $rows) {
-                $tot = 0;
-                $otot = 0; #optional tot
-                foreach ($rows as $k => $v) {
-                    if (is_numeric($k)) {
-                        $tot++;
-                    } else {
-                        $otot++;
-                    }
-                }
-                if (($tot + $otot) === count($params)) {
-                    $strict_match = $key;
-                    break;
-                }
-            }
-        }
-
-        if (!$strict_match) {
-            if (count($matched_function_no_params)) {
-                $strict_match = current($matched_function_no_params);
-            }
-        }
-
-        if ($strict_match) {
-            return array(
-                $strict_match => isset($matched_params[$strict_match]) ? $matched_params[$strict_match] : array()
-            );
-        } else {
+        return $params;
+    }
+    
+    /**
+     * Check if parameters match exactly with function parameters
+     * 
+     * @param array $params Route parameters
+     * @param array $paramList Function parameters
+     * @return bool True if exact match
+     */
+    private function _isExactParameterMatch(array $params, array $paramList): bool {
+        if (count($params) !== count($paramList)) {
             return false;
         }
+        
+        $match_count = 0;
+        foreach ($params as $param_name => $value) {
+            if (in_array($param_name, $paramList)) {
+                $match_count++;
+            }
+        }
+        
+        return $match_count === count($params);
+    }
+    
+    /**
+     * Check if parameters match with optional parameters included
+     * 
+     * @param array $params Route parameters
+     * @param array $paramList Function parameters
+     * @return bool True if optional match
+     */
+    private function _isOptionalParameterMatch(array $params, array $paramList): bool {
+        $required_params = 0;
+        $optional_params = 0;
+        
+        foreach ($paramList as $key => $param) {
+            if (is_numeric($key)) {
+                $required_params++;
+            } else {
+                $optional_params++;
+            }
+        }
+        
+        if (count($params) + $optional_params !== count($paramList)) {
+            return false;
+        }
+        
+        $match_count = 0;
+        foreach ($params as $param_name => $value) {
+            foreach ($paramList as $key => $param) {
+                if (is_numeric($key) && $param_name === $param) {
+                    $match_count++;
+                }
+            }
+        }
+        
+        return $match_count === count($params);
+    }
+    
+    /**
+     * Find the best matching function based on parameter matching
+     * 
+     * @param array $matched_params Functions with matched parameters
+     * @param array $matched_function_no_params Functions without parameters
+     * @param array $params Current route parameters
+     * @return array|false Best match or false if none found
+     */
+    private function _findBestMatch(array $matched_params, array $matched_function_no_params, array $params) {
+        // First, try strict parameter matching
+        $strict_match = $this->_findStrictMatch($matched_params, $params);
+        
+        if (!$strict_match) {
+            // Then try optional parameter matching
+            $strict_match = $this->_findOptionalMatch($matched_params, $params);
+        }
+        
+        if (!$strict_match && count($matched_function_no_params)) {
+            // Finally, use functions with no parameters
+            $strict_match = current($matched_function_no_params);
+        }
+        
+        return $strict_match ? [
+            $strict_match => $matched_params[$strict_match] ?? []
+        ] : false;
+    }
+    
+    /**
+     * Find strict parameter match
+     * 
+     * @param array $matched_params Functions with matched parameters
+     * @param array $params Current route parameters
+     * @return string|false Method name or false
+     */
+    private function _findStrictMatch(array $matched_params, array $params) {
+        foreach ($matched_params as $method_name => $param_list) {
+            $required_count = 0;
+            foreach ($param_list as $k => $v) {
+                if (is_numeric($k)) {
+                    $required_count++;
+                }
+            }
+            if ($required_count === count($params)) {
+                return $method_name;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Find optional parameter match
+     * 
+     * @param array $matched_params Functions with matched parameters
+     * @param array $params Current route parameters
+     * @return string|false Method name or false
+     */
+    private function _findOptionalMatch(array $matched_params, array $params) {
+        foreach ($matched_params as $method_name => $param_list) {
+            $required_count = 0;
+            $optional_count = 0;
+            
+            foreach ($param_list as $k => $v) {
+                if (is_numeric($k)) {
+                    $required_count++;
+                } else {
+                    $optional_count++;
+                }
+            }
+            
+            if (($required_count + $optional_count) === count($params)) {
+                return $method_name;
+            }
+        }
+        return false;
     }
 
+    /**
+     * Get function parameters with reflection caching
+     * 
+     * @param string $className The class name
+     * @param string $methodName The method name
+     * @return array Array of parameters
+     */
     private function _get_function_parameters($className, $methodName) {
+        $cache_key = $className . '::' . $methodName;
+        
+        if ($this->cacheEnabled && isset(self::$reflectionCache[$cache_key])) {
+            return self::$reflectionCache[$cache_key];
+        }
+        
         $reflection = new ReflectionMethod($className, $methodName);
         $paramList = array();
         foreach ($reflection->getParameters() as $key => $param) {
@@ -463,6 +680,11 @@ class Nexo {
                 $paramList[] = $param->name;
             }
         }
+        
+        if ($this->cacheEnabled) {
+            self::$reflectionCache[$cache_key] = $paramList;
+        }
+        
         return $paramList;
     }
 
@@ -499,6 +721,36 @@ class Nexo {
             }
         }
         return $params;
+    }
+    
+    /**
+     * Check if parameter accepts any number of values (*parameter)
+     * 
+     * @param string $parameter The parameter to check
+     * @return bool True if it's an any parameter
+     */
+    private function _is_any_parameter(string $parameter): bool {
+        return strpos($parameter, '*') !== false;
+    }
+    
+    /**
+     * Check if parameter is parametrised ({parameter})
+     * 
+     * @param string $parameter The parameter to check
+     * @return bool True if it's a parametrised parameter
+     */
+    private function _is_parametrised(string $parameter): bool {
+        return preg_match('/^{[^?].*}$/', $parameter) === 1;
+    }
+    
+    /**
+     * Check if parameter is optional ({?parameter})
+     * 
+     * @param string $parameter The parameter to check
+     * @return bool True if it's an optional parameter
+     */
+    private function _is_optional(string $parameter): bool {
+        return preg_match('/^{\?.*}$/', $parameter) === 1;
     }
     
     /**
@@ -702,6 +954,330 @@ class Nexo {
         ];
         
         return $messages[$code] ?? 'An unexpected error occurred. Please try again later.';
+    }
+    
+    /**
+     * Log performance metrics for development and optimization
+     */
+    private function logPerformanceMetrics(): void {
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $this->stime) * 1000; // Convert to milliseconds
+        
+        $this->performanceMetrics['end_time'] = $endTime;
+        $this->performanceMetrics['execution_time_ms'] = round($executionTime, 2);
+        $this->performanceMetrics['memory_usage'] = memory_get_usage(true);
+        $this->performanceMetrics['memory_peak'] = memory_get_peak_usage(true);
+        
+        // Only log in development environment
+        if (defined('NEXO_ENVIRONMENT') && NEXO_ENVIRONMENT === 'development') {
+            $this->performanceMetrics['cache_hits'] = [
+                'route_cache' => count(self::$routeCache),
+                'method_cache' => count(self::$classMethodCache),
+                'reflection_cache' => count(self::$reflectionCache)
+            ];
+            
+            // Log to performance log if enabled
+            if (defined('NEXO_LOG_ERRORS') && NEXO_LOG_ERRORS === true) {
+                $perfLog = sprintf(
+                    "[%s] PERFORMANCE: %sms | Memory: %s | Peak: %s | Caches: R:%d M:%d Ref:%d\n",
+                    date('Y-m-d H:i:s'),
+                    $this->performanceMetrics['execution_time_ms'],
+                    $this->formatBytes($this->performanceMetrics['memory_usage']),
+                    $this->formatBytes($this->performanceMetrics['memory_peak']),
+                    count(self::$routeCache),
+                    count(self::$classMethodCache),
+                    count(self::$reflectionCache)
+                );
+                
+                $logFile = defined('NEXO_LOG_FILE') ? NEXO_LOG_FILE : APPPATH . 'logs/nexo_errors.log';
+                error_log($perfLog, 3, $logFile);
+            }
+        }
+    }
+    
+    /**
+     * Format bytes into human readable format
+     * 
+     * @param int $bytes Number of bytes
+     * @return string Formatted string
+     */
+    private function formatBytes(int $bytes): string {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $factor = floor((strlen($bytes) - 1) / 3);
+        return sprintf("%.2f %s", $bytes / pow(1024, $factor), $units[$factor]);
+    }
+    
+    /**
+     * Get current performance metrics
+     * 
+     * @return array Performance metrics
+     */
+    public function getPerformanceMetrics(): array {
+        return $this->performanceMetrics;
+    }
+    
+    /**
+     * Clear all caches (useful for development)
+     */
+    public static function clearCaches(): void {
+        self::$routeCache = [];
+        self::$classMethodCache = [];
+        self::$reflectionCache = [];
+    }
+    
+    /**
+     * Get cache statistics
+     * 
+     * @return array Cache statistics
+     */
+    public static function getCacheStats(): array {
+        return [
+            'route_cache_size' => count(self::$routeCache),
+            'method_cache_size' => count(self::$classMethodCache),
+            'reflection_cache_size' => count(self::$reflectionCache),
+            'total_cached_items' => count(self::$routeCache) + count(self::$classMethodCache) + count(self::$reflectionCache)
+        ];
+    }
+    
+    // ================================
+    // INNOVATIVE NEW FEATURES
+    // ================================
+    
+    /**
+     * Dependency Injection Container
+     * Register a service in the container
+     * 
+     * @param string $name Service name
+     * @param callable|object $factory Service factory or instance
+     * @param bool $singleton Whether to create singleton
+     */
+    public static function register(string $name, $factory, bool $singleton = true): void {
+        self::$dependencyContainer[$name] = [
+            'factory' => $factory,
+            'singleton' => $singleton,
+            'instance' => null
+        ];
+    }
+    
+    /**
+     * Resolve a service from the container
+     * 
+     * @param string $name Service name
+     * @return mixed Service instance
+     * @throws Exception If service not found
+     */
+    public static function resolve(string $name) {
+        if (!isset(self::$dependencyContainer[$name])) {
+            throw new Exception("Service '$name' not found in dependency container");
+        }
+        
+        $service = self::$dependencyContainer[$name];
+        
+        if ($service['singleton'] && $service['instance'] !== null) {
+            return $service['instance'];
+        }
+        
+        $instance = is_callable($service['factory']) 
+            ? call_user_func($service['factory']) 
+            : $service['factory'];
+            
+        if ($service['singleton']) {
+            self::$dependencyContainer[$name]['instance'] = $instance;
+        }
+        
+        return $instance;
+    }
+    
+    /**
+     * Event System - Register event listener
+     * 
+     * @param string $event Event name
+     * @param callable $listener Event listener
+     * @param int $priority Priority (lower = higher priority)
+     */
+    public static function listen(string $event, callable $listener, int $priority = 10): void {
+        if (!isset(self::$eventListeners[$event])) {
+            self::$eventListeners[$event] = [];
+        }
+        
+        self::$eventListeners[$event][] = [
+            'listener' => $listener,
+            'priority' => $priority
+        ];
+        
+        // Sort by priority
+        usort(self::$eventListeners[$event], function($a, $b) {
+            return $a['priority'] <=> $b['priority'];
+        });
+    }
+    
+    /**
+     * Event System - Fire event
+     * 
+     * @param string $event Event name
+     * @param mixed $data Event data
+     * @return array Results from all listeners
+     */
+    public static function fire(string $event, $data = null): array {
+        if (!isset(self::$eventListeners[$event])) {
+            return [];
+        }
+        
+        $results = [];
+        foreach (self::$eventListeners[$event] as $listener) {
+            $results[] = call_user_func($listener['listener'], $data);
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Route Model Binding - Auto-inject model based on route parameter
+     * 
+     * @param string $paramName Parameter name
+     * @param string $modelClass Model class name
+     * @param string $keyField Field to search by (default: 'id')
+     */
+    public function bindModel(string $paramName, string $modelClass, string $keyField = 'id'): void {
+        if (!isset($this->params[$paramName])) {
+            return;
+        }
+        
+        $value = $this->params[$paramName];
+        
+        // Try to resolve model instance
+        try {
+            if (class_exists($modelClass)) {
+                $model = new $modelClass();
+                
+                // If model has find method, use it
+                if (method_exists($model, 'find')) {
+                    $instance = $model->find($value);
+                } elseif (method_exists($model, 'where')) {
+                    $instance = $model->where($keyField, $value)->first();
+                } else {
+                    // Fallback to manual property setting
+                    $instance = $model;
+                    $instance->$keyField = $value;
+                }
+                
+                // Replace parameter with model instance
+                $this->params[$paramName] = $instance;
+            }
+        } catch (Exception $e) {
+            // Log error but don't break execution
+            if (defined('NEXO_LOG_ERRORS') && NEXO_LOG_ERRORS) {
+                error_log("Model binding failed for $paramName: " . $e->getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Advanced Request Pipeline - Add request processor
+     * 
+     * @param callable $processor Request processor
+     * @param int $priority Priority (lower = earlier execution)
+     */
+    public function addRequestProcessor(callable $processor, int $priority = 10): void {
+        $this->requestPipeline[] = [
+            'processor' => $processor,
+            'priority' => $priority
+        ];
+        
+        // Sort by priority
+        usort($this->requestPipeline, function($a, $b) {
+            return $a['priority'] <=> $b['priority'];
+        });
+    }
+    
+    /**
+     * Process request through pipeline
+     * 
+     * @param array $request Request data
+     * @return array Processed request
+     */
+    private function processRequestPipeline(array $request): array {
+        foreach ($this->requestPipeline as $pipeline) {
+            $request = call_user_func($pipeline['processor'], $request);
+        }
+        return $request;
+    }
+    
+    /**
+     * Auto-discover routes from controller annotations
+     * 
+     * @param string $controllerPath Path to controllers directory
+     * @return array Discovered routes
+     */
+    public static function discoverRoutes(string $controllerPath): array {
+        if (self::$autoDiscoveredRoutes !== null) {
+            return self::$autoDiscoveredRoutes;
+        }
+        
+        $routes = [];
+        $files = glob($controllerPath . '/*.php');
+        
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+            $className = basename($file, '.php');
+            
+            // Look for route annotations like @Route("/path", methods=["GET"])
+            preg_match_all('/@Route\s*\(\s*["\']([^"\']+)["\']\s*(?:,\s*methods\s*=\s*\[(.*?)\])?\s*\)\s*(?:.*?)\s*(?:public\s+)?function\s+(\w+)/s', $content, $matches, PREG_SET_ORDER);
+            
+            foreach ($matches as $match) {
+                $path = $match[1];
+                $methods = isset($match[2]) ? 
+                    array_map('trim', explode(',', str_replace(['"', "'"], '', $match[2]))) : 
+                    ['GET'];
+                $method = $match[3];
+                
+                $routes[] = [
+                    'path' => $path,
+                    'methods' => $methods,
+                    'controller' => $className,
+                    'method' => $method
+                ];
+            }
+        }
+        
+        self::$autoDiscoveredRoutes = $routes;
+        return $routes;
+    }
+    
+    /**
+     * Debug information collector
+     * 
+     * @return array Comprehensive debug information
+     */
+    public function getDebugInfo(): array {
+        return [
+            'framework' => [
+                'name' => 'Nexo Framework',
+                'version' => '1.0.0',
+                'environment' => defined('NEXO_ENVIRONMENT') ? NEXO_ENVIRONMENT : 'production'
+            ],
+            'request' => [
+                'uri' => $this->uri,
+                'controller' => $this->controller,
+                'method' => $this->method,
+                'params' => $this->params,
+                'middleware' => $this->middleware
+            ],
+            'performance' => $this->performanceMetrics,
+            'cache' => self::getCacheStats(),
+            'dependencies' => array_keys(self::$dependencyContainer),
+            'events' => array_keys(self::$eventListeners),
+            'memory' => [
+                'current' => memory_get_usage(true),
+                'peak' => memory_get_peak_usage(true),
+                'limit' => ini_get('memory_limit')
+            ],
+            'system' => [
+                'php_version' => PHP_VERSION,
+                'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+                'loaded_extensions' => get_loaded_extensions()
+            ]
+        ];
     }
 }
 

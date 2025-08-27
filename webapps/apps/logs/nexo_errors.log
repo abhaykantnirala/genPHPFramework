@@ -5,3 +5,31 @@ Trace:
 #1 /var/www/abhaykantlocal.netcoresmartech.com/public_html/genPHPFramework/webapps/base/bind/nexo.php(712): Nexo->__construct()
 #2 /var/www/abhaykantlocal.netcoresmartech.com/public_html/genPHPFramework/index.php(57): require_once('/var/www/abhayk...')
 #3 {main}
+[2025-08-27 11:58:55] PERFORMANCE: 4.5ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:58:55] PERFORMANCE: 3.42ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:58:57] PERFORMANCE: 5.1ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:58:57] PERFORMANCE: 2.72ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:58:58] PERFORMANCE: 4.57ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:58:58] PERFORMANCE: 4.09ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:59:03] PERFORMANCE: 2.84ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:59:03] PERFORMANCE: 2.71ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:59:11] PERFORMANCE: 4.95ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 11:59:11] PERFORMANCE: 4.51ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 12:06:43] PERFORMANCE: 5.37ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 12:06:43] PERFORMANCE: 3.71ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 12:26:40] PERFORMANCE: 8.21ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 12:26:40] PERFORMANCE: 4.93ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:36:29] PERFORMANCE: 15.03ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:37:31] PERFORMANCE: 5.59ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:39:11] PERFORMANCE: 3.81ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:39:14] PERFORMANCE: 5.32ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:39:16] PERFORMANCE: 4.27ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:39:17] PERFORMANCE: 6.43ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:39:22] PERFORMANCE: 3.18ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:49:19] PERFORMANCE: 7.66ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:50:35] PERFORMANCE: 7.86ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:50:35] PERFORMANCE: 4.15ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:56:06] PERFORMANCE: 8.4ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:56:08] PERFORMANCE: 4.54ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:56:09] PERFORMANCE: 4.05ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
+[2025-08-27 13:56:16] PERFORMANCE: 4.62ms | Memory: 2.00 MB | Peak: 2.00 MB | Caches: R:0 M:0 Ref:0
