@@ -1,0 +1,10 @@
+{
+    "packagename": "Paytm",
+    "author": "Paytm",
+    "lastupdate": "25-05-2019",
+    "require": [
+        {
+            "filename": "lib/autoload.php"
+        }
+    ]
+}

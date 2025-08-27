@@ -1,0 +1,10 @@
+{
+    "packagename": "aws-package",
+    "author": "aws",
+    "lastupdate": "15-10-2019",
+    "require": [
+        {
+            "filename": "vendor/autoload.php"
+        }
+    ]
+}

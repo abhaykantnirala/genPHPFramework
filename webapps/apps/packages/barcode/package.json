@@ -1,0 +1,10 @@
+{
+    "packagename": "barcode",
+    "author": "abhay",
+    "lastupdate": "06-05-2019",
+    "require": [
+        {
+            "filename": "src/autoload.php"
+        }
+    ]
+}

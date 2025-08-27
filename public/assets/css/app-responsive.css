@@ -1,0 +1,332 @@
+@media (min-width:1920px) {
+
+}
+
+@media (max-width:1850px) {
+
+
+
+}
+
+@media (max-width:1650px) {
+
+
+
+}
+
+@media (max-width:1500px) {
+
+.banner-inner h2 {
+    font-size: 40px;
+}
+
+}
+
+@media (max-width:1250px) {
+
+
+
+}
+
+@media (max-width:1170px) {
+
+.header-top-left {
+
+    width: 60%;
+
+}
+
+.header-top-right {
+
+    width: 40%;
+
+}
+
+}
+
+ @media (max-width:991px) {
+
+.header-top {
+
+    display: none;
+
+}
+
+.login-btn {
+
+    margin-right: 50px; position:absolute; right:0;
+
+}
+
+.logo-col a {
+
+    font-size: 40px;
+
+}
+
+.logo-col {
+
+    padding: 15px;
+
+    position: absolute;
+
+}
+
+.menu-col {
+
+    padding: 15px;
+
+    position: relative;
+
+    width: 100%;
+
+    min-height: 77px;
+
+}
+
+.menu-col ul.open {
+
+    position: absolute;
+
+    left: -21px;
+
+    background: #fff;
+
+    right: -21px;
+
+    top: 77px;
+
+    padding: 0 25px;
+
+    border-top: 1px solid #e5e5e5;
+
+}
+
+.banner-caps h2 {
+
+    margin: 0 0 20px;
+
+    font-size: 40px;
+
+}
+
+.banner-caps .btn {
+
+    padding: 10px 25px;
+
+    font-size: 16px;
+
+}
+
+.banner-img img {
+
+    min-height: 350px;
+
+    object-fit: cover;
+
+}
+
+.about-content {
+
+    padding-left: 0;
+
+}
+
+.sec {
+
+    padding: 40px 0;
+
+}
+
+.how-work-col {
+
+    margin: 10px 0 0;
+
+}
+
+.how-work-content {
+
+    padding: 15px;
+
+}
+
+.pricing-plan-col {
+
+    padding: 15px;
+
+    margin: 10px 0 0;
+
+}
+
+.pricing-top {
+
+    font-size: 24px;
+
+}
+
+.pricing-plan-col .custom-btn {
+
+    padding: 8px 20px;
+
+    font-size: 14px;
+
+}
+
+.form-col .form-control {
+
+    padding: 6px 15px;
+
+}
+
+.write-sms-content h2 {
+
+    color: #fff;
+
+    margin-bottom: 20px;
+
+}
+
+.form-col {
+
+    margin-bottom: 15px;
+
+}
+.banner-inner h2 {
+    font-size: 40px;
+}
+}
+
+@media screen and (max-width: 767px) {
+
+#cssmenu #menu-button {
+
+    right: 0px;
+
+}
+
+.banner-caps h2 {
+
+    margin: 0 0 20px;
+
+    font-size: 24px;
+
+}
+
+.banner-caps p {
+
+    font-size: 14px;
+
+}
+
+.banner-caps {
+
+    min-width: 300px;
+
+}
+
+.banner-img img {
+
+    min-height: 250px;
+
+    object-fit: cover;
+
+}
+
+.banner-caps .btn {
+
+    padding: 8px 20px;
+
+    font-size: 14px;
+
+}
+
+.sec {
+
+    padding: 30px 0;
+
+}
+
+h2 {
+
+    margin-bottom: 15px;
+
+}
+
+.write-sms-sec {
+
+    background-image: none;
+
+}
+
+.write-sms-content {
+
+    padding-left: 0;
+
+}
+
+.footer {
+
+    padding-top: 25px;
+
+}
+
+ul.social-link {
+
+    padding-bottom: 10px;
+
+}
+
+.menu-col ul li {
+
+    display: block;
+
+    padding: 1px 5px;
+
+}
+
+.banner-inner h2 {
+
+    font-size: 24px;
+
+    margin-top: -15px;
+
+    margin-bottom: 0;
+
+}
+.profile-row {
+    flex-wrap: wrap;
+}
+.profile-img {
+    padding: 20px;
+    max-width: 100%;
+}
+.profile-detail {
+    width: 100%;
+    padding-left: 0;
+    padding-top: 25px;
+} 
+.about-content {
+    padding-left: 0;
+    padding-top: 20px;
+}
+
+}
+
+@media screen and (max-width: 639px) {
+
+
+
+}
+
+@media screen and (max-width: 479px) {
+.profile-img {
+    margin: 0 auto;
+}
+
+
+}
+
+@media screen and (max-width: 400px) {
+
+}
+

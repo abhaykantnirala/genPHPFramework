@@ -1,0 +1,10 @@
+{
+    "packagename": "mpdf",
+    "author": "mpdf",
+    "lastupdate": "16-06-2020",
+    "require": [
+        {
+            "filename": "vendor/autoload.php"
+        }
+    ]
+}
